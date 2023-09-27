@@ -1,0 +1,243 @@
+[mongoDB]
+
+1. 몽고디비 설치
+http://www.mongodb.com/ko-kr > 제품 > community server > 버전 선택 (여기선 4.4.24) > 플랫폼은 windows x64 > 다운로드
+2. 다운 후 compass에 나오는 url 따로 저장해두기 
+mongodb://localhost:27017
+3. db 따로 만드려면 + 아이콘 눌러서 만들어주기 
+4. 용어 정리 
+   DB : 데이터베이스 
+     컬렉션(collection) : RDB의 테이블(table)
+   문서(document) :     RDB의 행(row)
+
+5. document 만들기 
+add data 클릭 > insert document > 만들어진 jsp 파일 내용 복붙하거나 직접 작성
+
+6. 기본 실습 
+ # 현재 db 확인하기
+>db
+
+# db 정보 확인 (현재 만들어져있는 db 정보들이 나온다)
+> show dbs
+
+# collection 정보 확인 
+> show collections 
+
+# db 선택
+# db 없으면 생성됨
+> use config
+> use xxx
+
+# 화면 clear
+> cls
+
+7.query 실습 ( query 작업(행선택)
+ 기본문법: db.컬렉션명.find(query(행선택), projection(열선택))
+
+# 전체 조회 (select)
+- 문법: db.컬렉션명.find()
+> db.user.find()
+또는
+> db.user.find({})
+
+# 조건 지정
+- 문법: db.컬렉션명.find({key:value})
+> db.user.find({age:56})	==> 나이가 56인 값만 뽑겠다 
+> db.user.find({gender:'f'})	==> 성별이 'f'인 값만 뽑겠다 
+
+# and 조건 지정
+- 문법1: db.컬렉션명.find({key:value, key1:value1})   ==> key:value 면서 key1:value1 인 걸 찾는다 
+> db.user.find({gender:'f', age:18})
+
+-문법2: db.컬렉션명.find({$and:[{key:value}, {key1:value1}]})
+> db.user.find({$and:[{gender:'f'}, {age:18}]})
+
+# or 조건 지정
+-문법: db.컬렉션명.find({$or:[{key:value}, {key1:value1}]})
+> db.user.find({$or:[{gender:'f'}, {age:56}]})
+
+# nor 조건 지정 (지정한 조건이 모두 만족하지 않을 때)
+-문법: db.컬렉션명.find({$nor:[{key:value}, {key1:value1}]})
+> db.user.find({$nor:[{gender:'f'}, {age:56}]})
+> db.user.find({$nor:[{gender:'f'}, {age:56}]}).count()  ==> 갯수 보기 
+
+# not 조건 지정 
+> db.user.find({age:67})
+> db.user.find({age:{$eq:67}})
+
+> db.user.find({age:{$not:{$eq:67}}})   ==> age가 67인 사람을 제외하고 출력
+> db.user.find({age:{$not:{$gt:67}}})   ==> age가 67보다 큰 사람을 제외하고 출력
+
+# 비교 연산
+https://www.mongodb.com/docs/manual/reference/operator/query/#comparison
+- 문법: db.컬렉션명.find({key:{$gt:value}})
+> db.user.find({age:{$gt:60}})   ==> age가 60보다 큰 사람 찾기 
+
+> db.user.find({age:{$gt:40, $lt:60}})  ==> age가 40보다 크고 60보다 작은 사람 찾기 
+> db.user.find({age:{$gt:40, $lt:60}, username:'홍길동'})
+
+# IN 연산
+- 문법: db.컬렉션명.find({key: {$in: [v1, v2,..]}})
+> db.user.find({age:{$in:[34, 67]}})
+
+#######################################################
+
+8. query 실습 (projection(열선택))
+
+- 문법: db.컬렉션명.find(query(행선택), projection(열선택))
+- 컬럼선택(1) 또는 제거(0)을 명시하는 방법으로 열선택한다.
+- _id는 pk 역할이라는 뜻이고 필수이다.
+- 0 과 1을 혼합 사용할 수는 없음. ( error 발생 )
+
+> db.user.find({}, {username:1})   		==> 모든 행에서 pk와 username 컬럼만 보고싶다.
+> db.user.find({}, {username:1, gender:1})      ==> 모든 행에서 pk, username, gender 컬럼만 보고싶다.
+
+> db.user.find({}, {username:0})   		==> 모든 행에서 username만 빼고 다 보여달라.
+> db.user.find({}, {username:1, gender:0})	==> error 발생
+> db.user.find({}, {_id:0, username:1})		==> _id는 혼합 가능
+
+#####################################################
+
+9. 배열 조회
+==> tutorial.user2.json 데이터 사용
+
+# 가. 값으로 조회
+- 문법: db.컬렉션.find({key:value})
+> db.user2.find({grade:'A'})  			==> grade가 A인 데이터 찾아주기
+> db.user2.find({grade:'A'}).count() 		==> " 갯수
+
+- 문법: db.컬렉션.find({key:[v1, v2, v3]})
+> db.user2.find({grade:['A', 'B', 'C']})
+> db.user2.find({grade:['B', 'A', 'C']})	==> 안나옴. 배열 형식의 조회는 순서가 중요하다.
+
+# 하나 이상의 배열요소와 일치하는 값 반환 : $all
+# $all ==> 배열의 순서 및 개수와 무관하고, 일치하는 데이터가 있는지만 체크
+- 문법: db.컬렉션.find({key:{$all:[v1, v2]}})
+> db.user2.find({grade:{$all:['A', 'B']}}).count() ==> #2개.
+
+
+# 나. 지정된 인덱스로 조회 
+- 문법: db.컬렉션.find({"key.인덱스":value})  (반드시 쌍따옴표로 묶어줘야 함)
+> db.user2.find({grade:'B'})
+> db.user2.find({grade:'B'}).count()		==> #4명
+> db.user2.find({"grade.1":'B'})		==> 인덱스 두번째 값이 B인 데이터 찾아주기 
+
+
+# 다. 배열 크기로 조회
+- 문법: db.컬렉션.find({key:{$size:n개}})
+> db.user2.find({fruit:{$size:3}}).count()
+
+############################################
+
+10. embedded document (중첩 JSON)
+
+가. 순서와 값이 중요 ( {} 사용 )
+- 문법: db.컬렉션.find({key:{k1:v1, k2:v2}})
+> db.user2.find({comments:{email:'hong@example.com'}}) 				==> 0개 ( comments 내의 다른 값도 넣어줘야 찾을 수 있음 )
+> db.user2.find({comments:{email:'hong@example.com', content:'nice post'}}) 	==> 1개 
+
+나. 순서와 값이 무관 ( . 사용 )
+- 문법: db.컬렉션.find({key.k1:v1, key.k2:v2})
+> db.user2.find({"comments.email":'hong@example.com'})	==> ""로 묶어줘서 다른 값에 신경쓰지 않아도 email만 보고도 값을 찾을 수 있음. 순서 무시, 갯수 무시
+
+################################################
+
+11. limit(n), skip(n), sort({key:1})==> 1: 오름차순, -1: 내림차순
+
+>db.user2.find().limit(2)
+>db.user2.find().skip(6)
+>db.user2.find().sort({age:1})
+>db.user2.find().sort({age:-1})
+
+>db.user2.find().skip(2).limit(4).sort({age:1})
+
+================> RDB의 select 기능
+###########################################################
+
+12. 문서(document) 저장
+# https://www.mongodb.com/docs/v4.4/reference/insert-methods
+# _id 속성을 명시하지 않으면 자동으로 생성된다. ( pk 역할, ObjectId 타입이고 24글자 구성됨 )
+  
+  가. 단일 문서 저장 ( insertOne(문서) )
+ - 문법: db.컬렉션.insertOne(문서)
+
+  # 컬렉션이 없으면 자동으로 inventory컬렉션이 생성된다.
+  >db.inventory.insertOne(
+   { item: "canvas", qty: 100, tags: ["cotton"], size: { h: 28, w: 35.5, uom: "cm" } }
+  )
+  >db.inventory.find()
+
+  나. 멀티 문서 저장 ( insertMany([문서1,문서2,...]) )
+  문법: db.컬렉션.insertMany([문서1,문서2,...])
+  >db.inventory.insertMany([
+   { item: "journal", qty: 25, tags: ["blank", "red"], size: { h: 14, w: 21, uom: "cm" } },
+   { item: "mat", qty: 85, tags: ["gray"], size: { h: 27.9, w: 35.5, uom: "cm" } },
+   { item: "mousepad", qty: 25, tags: ["gel", "blue"], size: { h: 19, w: 22.85, uom: "cm" } }
+   ])
+
+   db.inventory.insertMany( [
+   { item: "notebook", qty: 50, size: { h: 8.5, w: 11, uom: "in" }, status: "P" },
+   { item: "paper", qty: 100, size: { h: 8.5, w: 11, uom: "in" }, status: "D" },
+   { item: "planner", qty: 75, size: { h: 22.85, w: 30, uom: "cm" }, status: "D" },
+   { item: "postcard", qty: 45, size: { h: 10, w: 15.25, uom: "cm" }, status: "A" },
+   { item: "sketchbook", qty: 80, size: { h: 14, w: 21, uom: "cm" }, status: "A" },
+   { item: "sketch pad", qty: 95, size: { h: 22.85, w: 30.5, uom: "cm" }, status: "A" }
+] );
+  >db.inventory.find()
+
+###########################################################
+
+13. 문서(document) 수정
+# https://www.mongodb.com/docs/v4.4/reference/update-methods/
+
+ 가. 단일 문서 수정 ( updateOne(필터, 업데이트) , $set 표현식) 
+ 문법: db.컬렉션.updateOne(필터, 업데이트)
+ > db.inventory.updateOne({item:'paper'},{$set:{qty:200, "size.uom":"cm" }})
+ > db.inventory.updateOne({item:'paper'},{$inc:{qty:-50}})
+
+ > db.inventory.updateOne({item:'paper'},{$set:{status:'F'}, $inc:{qty:50}})
+
+ 나. 멀티 문서 수정 ( updateMany(필터, 업데이트), $set 표현식 ) 
+  문법: db.컬렉션.updateMany(필터, 업데이트)
+
+ > db.inventory.updateMany({qty:{$lt:50}}, {$set:{status:'F'}})
+
+###########################################################
+14. 문서(document) 삭제
+# https://www.mongodb.com/docs/v4.4/crud/#delete-operations
+
+  가. 단일 문서 삭제 ( deleteOne(필터) )
+   문법: db.컬렉션.deleteOne(필터)
+
+  >db.inventory.deleteOne({item:'paper'})
+
+
+  가. 멀티 문서 삭제 ( deleteMany(필터) )
+  문법: db.컬렉션.deleteMany(필터)
+
+   >db.inventory.deleteMany({qty:{$lt:50}})
+
+###########################################################
+
+15. Aggregation Pipelines
+
+https://www.mongodb.com/docs/mongodb-shell/run-agg-pipelines/#run-aggregation-pipelines
+https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/#db.collection.aggregate---stages
+
+기능 및 특징:
+ - 그룹핑 기능
+ - 컬럼에 별칭 지정
+ - 필터링 및 정렬
+
+- 문법: db.컬렉션.aggregate( [ { <stage> }, ... ] )
+
+ stage? 표현식 ( $project, $match, $group, ... )
+
+가. $project 
+기능: projection 하거나 별칭 지정. 기존 key값을 사용할 때는 $key를 사용한다.
+
+# username 과 age만 보기 ( projection 작업)
+>db.user.aggregate({$project:{username:1, age:1}})
+
+# 별칭,  age--> userage, _id --> num
+>db.user.aggregate({$project:{num:"$_id", username:1, userage:"$age", _id:0}}) 	==> 순서유지 안됨
