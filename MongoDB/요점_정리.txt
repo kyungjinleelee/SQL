@@ -241,3 +241,97 @@ https://www.mongodb.com/docs/manual/reference/operator/aggregation-pipeline/#db.
 
 # 별칭,  age--> userage, _id --> num
 >db.user.aggregate({$project:{num:"$_id", username:1, userage:"$age", _id:0}}) 	==> 순서유지 안됨
+
+나. $match
+기능: 조건지정
+>db.user.aggregate({$project:{username:1, age:1}},
+                    {$match:{age:{$gt:30}}} 
+		   )
+
+>db.user.aggregate({$project:{username:1, age:1, gender:1}},
+                    {$match:{$or:[{age:{$gt:30}},{gender:'m'}]}} 
+		   )
+
+다. $sort ( 1: 오름차순, -1: 내림차순 )
+>db.user.aggregate({$project:{username:1, age:1}},
+                    {$sort:{age:1}}
+                    )
+
+>db.user.aggregate({$project:{username:1, age:1, gender:1}},
+                    {$match:{$or:[{age:{$gt:30}},{gender:'m'}]}},
+		    {$sort:{age:1}}
+		   )
+
+
+라. $group
+기능: 그룹핑
+-몽고디비에서는 그룹핑되었을때의 pk 기능으로 _id를 사용하고 $key로 지정한다.
+-그룹함수 기능
+
+RDB의 sql: group by 컬럼명 
+           예> group by gender
+
+     그룹함수: count() as cnt, max() as Max , min() as Min, sum() as totalSum, avg() as Avg
+
+몽고디비:   
+        {$group:{"_id":"$gender"}}
+
+    그룹표현식: {"totalSum":{$sum:"$age"}}
+            {"Avg":{$avg:"$age"}}
+	    {"Min":{$min:"$age"}}
+	    {"Max":{$max:"$age"}}
+	    {"cnt":{$sum:1}}
+
+>db.user.aggregate({$group:{_id:"$gender"}})
+
+>db.user.aggregate({$group:{_id:"$gender", "cnt":{$sum:1}}})
+
+>db.user.aggregate({$group:{_id:"$gender", "cnt":{$sum:1},
+                                           "totalSum":{$sum:"$age"},
+					   "Avg":{$avg:"$age"},
+					   "Min":{$min:"$age"},
+					   "Max":{$max:"$age"}
+					   
+		   }})
+
+///////////////////////////////////////////////////////////////
+
+[java 연동]
+
+1. 자바 프로젝트 (maven 기반) 만들기 (일반 이클립스, sts 모두 가능)
+file > new > Maven project > create a simple project 체크박스 선택 > group id(패키지명) artfact id(프로젝트명) 넣고 finish
+
+2. pom.xml에 의존성 추가 ( <project 태그 안에서> )
+
+<dependencies>
+<dependency>
+<groupId>org.mongodb</groupId>
+<artifactId>mongodb-driver-sync</artifactId>
+<version>4.8.2</version>
+</dependency>
+</dependencies>
+
+3. 메인 클래스 만들고 
+1) 몽고 db 연결 
+MongoClient client = MongoClients.create("mongodb://localhost:27017");
+
+2) tutorial db 연결
+MongoDatabase db = client.getDatabase("tutorial");	// ""안에는 db 이름 넣어주면 됨
+
+3) 컬렉션 연결
+MongoCollection<Document> collection = db.getCollection("user"); // "" 안에는 컬렉션 이름 넣어주면 됨, 리턴타입 Document 패키지는 org.bson으로 받기 
+
+4) 전체 조회 - db.user.find()
+MongoCursor<Document> cursor = collection.find().cursor();
+
+5) 반복문으로 데이터 출력하기 
+ 예시코드 ) 	while(cursor.hasNext()) {
+			Document doc = cursor.next();
+			System.out.println(doc);
+			System.out.println(doc.get("_id")+"\t"+ doc.getString("username"));
+		}
+6) 필터 사용 
+Bson filter = Filters.eq("gender", "f"); // 필터 만들어 주고 
+MongoCursor<Document> cursor = collection.find(filter).cursor(); // 4)번 코드에 인자값으로 filter 넣어주기 
+
+
